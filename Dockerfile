@@ -1,5 +1,5 @@
-FROM ubuntu:trusty
-MAINTAINER Amer Child <achild@basis.com>
+FROM ubuntu:vivid
+MAINTAINER Marty Rand <marty@martionlabs.com>
 
 # Update and install modules for bugzilla, Apache2
 RUN apt-get update && \
@@ -18,16 +18,15 @@ RUN apt-get update && \
 	libtheschwartz-perl libtest-taint-perl libauthen-radius-perl libfile-slurp-perl \
 	libencode-detect-perl libmodule-build-perl libnet-ldap-perl libauthen-sasl-perl \
 	libtemplate-perl-doc libfile-mimeinfo-perl libhtml-formattext-withlinks-perl \
-	libgd-dev lynx-cur graphviz python-sphinx patch && \
+	libgd-dev lynx-cur graphviz python-sphinx patch libemail-sender-transport-smtp-tls-perl \
+	libfile-slurp-unicode-perl libjson-xs-perl libfile-copy-recursive-perl \
+	libcache-memcached-perl && \
 	rm -rf /var/lib/apt/lists/* 
 
-# Remove DEFAULT apache site
-RUN rm -rf /var/www/html
-
 # Make Bugzilla install Directory
-ADD https://ftp.mozilla.org/pub/mozilla.org/webtools/bugzilla-4.4.8.tar.gz /tmp/
-RUN tar -xvf /tmp/bugzilla-4.4.8.tar.gz -C /var/www/
-RUN ln -s /var/www/bugzilla-4.4.8 /var/www/html
+ADD https://ftp.mozilla.org/pub/mozilla.org/webtools/bugzilla-5.0.tar.gz /tmp/
+RUN tar -xvf /tmp/bugzilla-5.0.tar.gz -C /var/www/
+RUN mv -R /var/www/bugzilla-5.0/* /var/www/html
 ADD bugzilla.conf /etc/apache2/sites-available/
 WORKDIR /var/www/html
 
@@ -38,16 +37,7 @@ RUN rm -f /etc/msmtprc
 RUN /usr/bin/perl install-module.pl Email::Send && \
     /usr/bin/perl install-module.pl File::Spec
 RUN ./install-module.pl --all
-#RUN ./checksetup.pl
+RUN ./checksetup.pl
 
 # Enable CGI and Disable default apache site
 RUN a2enmod cgi headers expires && a2ensite bugzilla && a2dissite 000-default
-
-# Add the start script
-ADD start /opt/
-
-# Run start script
-CMD ["/opt/start"]
-
-# Expose web server port
-EXPOSE 80
